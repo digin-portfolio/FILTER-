@@ -424,16 +424,16 @@ async def _process_with_lock(bot, filename, caption, media_info, base_name, proc
     if not movie_doc:
         search_query = base_name
         if TMDB_POSTER:
-    details = await get_movie_detailsx(search_query)
-    # Only switch to IMDB if TMDB completely failed
-    if details is None or not isinstance(details, dict) or details.get("error"):
-        error_tmdb = True
-        logger.info("TMDB error switching to IMDB")
-        details = await get_movie_details(search_query, file=filename) or {}
-    else:
-        error_tmdb = False  # TMDB succeeded
-else:
-    details = await get_movie_details(search_query, file=filename) or {}
+            details = await get_movie_detailsx(search_query)
+            # Only switch to IMDB if TMDB completely failed
+            if details is None or not isinstance(details, dict) or details.get("error"):
+                error_tmdb = True
+                logger.info("TMDB error switching to IMDB")
+                details = await get_movie_details(search_query, file=filename) or {}
+            else:
+                error_tmdb = False  # TMDB succeeded
+        else:
+            details = await get_movie_details(search_query, file=filename) or {}
 
 
         genres = normalize_genres(details.get("genres"))

@@ -63,27 +63,9 @@ OTT_PLATFORMS = {
 }
 
 STANDARD_GENRES = {
-    'Action', 'Adventure', 'Animation', 'Anime', 'Biography', 'Comedy', 'Crime', 'Documentary',
+    'Action', 'Adventure', 'Animation', 'Biography', 'Comedy', 'Crime', 'Documentary',
     'Drama', 'Family', 'Fantasy', 'Film-Noir', 'History', 'Horror', 'Music',
     'Musical', 'Mystery', 'Romance', 'Sci-Fi', 'Sport', 'Thriller', 'War', 'Western'
-}
-
-# Map API / IMDb variants to canonical STANDARD_GENRES labels
-GENRE_ALIASES = {
-    'science fiction': 'Sci-Fi',
-    'sci fi': 'Sci-Fi',
-    'sci-fi': 'Sci-Fi',
-    'anime': 'Animation',
-}
-
-EXTRA_SCRUB_WORDS_LOWER = {
-    "cc", "x265", "x264", "h265", "h264", "hevc", "av1", "vp9", "vp8",
-    "pahe", "rarbg", "yts", "yify", "eztv", "ettv", "megusta", "shaanig",
-    "ganool", "sparks", "fgt", "dimension", "killers", "ion10", "psa",
-    "proper", "repack", "v2", "v3", "internal", "readnfo", "remux",
-    "imax", "directors", "uncut", "extended", "multilang", "multi",
-    "subs", "subbed", "dubbed", "dub", "aac", "ddp", "eac3", "ac3", "dts",
-    "atmos", "truehd", "flac", "barbz", "edge", "ntb", "raptor", "kbps",
 }
 
 # Precompiled regex patterns
@@ -106,150 +88,6 @@ MEDIA_FILTER = filters.document | filters.video | filters.audio
 locks = defaultdict(asyncio.Lock)
 pending_updates = {}
 error_tmdb = False
-
-LEADING_BRACKETS = re.compile(r'^\s*(?:\[[^\]]+\]\s*)+', re.IGNORECASE)
-
-
-def strip_leading_bracket_tags(s: str) -> str:
-    s = (s or "").strip()
-    while True:
-        m = LEADING_BRACKETS.match(s)
-        if not m:
-            break
-        s = s[m.end() :].strip()
-    return s
-
-
-def strip_leading_release_parens(s: str) -> str:
-    """Remove leading (repack), (proper), etc. Keep leading (1999) year-style parens."""
-    s = (s or "").strip()
-    while True:
-        m = re.match(r'^\s*\(([^)]*)\)\s*', s)
-        if not m:
-            break
-        inner = m.group(1).strip()
-        if re.fullmatch(r'(?:19|20)\d{2}', inner):
-            break
-        s = s[m.end() :].strip()
-    return s
-
-
-def strip_leading_episode_index(name: str) -> str:
-    """
-    Drop a lone leading number before a long title (common in anime batch filenames).
-    e.g. '11 You And I Are Polar Opposites' -> 'You And I Are Polar Opposites'
-    """
-    m = re.match(r'^(\d{1,3})\s+(.+)$', (name or "").strip())
-    if not m:
-        return name
-    rest = m.group(2).strip()
-    if len(rest) >= 12 and len(rest.split()) >= 3:
-        return rest
-    return name
-
-
-def strip_season_episode_tokens(name: str) -> str:
-    if not name:
-        return name
-    year_match = re.search(r'\(?\b(19|20)\d{2}\b\)?\s*$', name)
-    year_part = ""
-    if year_match:
-        year_part = year_match.group(0)
-        name = name[: year_match.start()].strip()
-    patterns = [
-        r'\bS\d{1,2}E\d{1,2}\b',
-        r'\bS\d{1,2}\b',
-        r'\bE\d{1,2}\b',
-        r'\b\d{1,2}x\d{1,2}\b',
-        r'\bSeason\s*\d{1,2}\b',
-        r'\bEp(?:isode)?\.?\s*\d{1,3}\b',
-        r'\bEpisode\s*\d{1,3}\b',
-        r'\bPart\s*\d{1,2}\b',
-    ]
-    for p in patterns:
-        name = re.sub(p, ' ', name, flags=re.IGNORECASE)
-    name = re.sub(r'[_\.\-]+', ' ', name)
-    name = re.sub(r'\s+', ' ', name).strip()
-    if year_part:
-        y = re.search(r'(19|20)\d{2}', year_part)
-        if y:
-            name = f"{name} {y.group(0)}"
-    return name.strip()
-
-
-def remove_scrub_words(text: str) -> str:
-    scrub = {w.lower() for w in IGNORE_WORDS} | EXTRA_SCRUB_WORDS_LOWER
-    return " ".join(word for word in text.split() if word.lower() not in scrub)
-
-
-def finalize_title_for_lookup(name: str, fallback: str) -> str:
-    """Strip release tags so TMDB/IMDB get a clean query; stable key for Mongo _id."""
-    if not name:
-        name = fallback
-    name = strip_leading_bracket_tags(name)
-    name = strip_leading_release_parens(name)
-    name = normalize(name)
-    name = remove_scrub_words(name)
-    name = strip_leading_episode_index(name)
-    name = normalize(name)
-    name = strip_season_episode_tokens(name)
-    name = normalize(name)
-    if not name:
-        name = normalize(remove_ignored_words(normalize(fallback))) or fallback
-    return name.strip()
-
-
-def normalize_genres(raw) -> str:
-    if raw is None or raw == "N/A":
-        return "N/A"
-    if isinstance(raw, list):
-        genre_list = [str(g).strip() for g in raw if g and str(g).strip()]
-    elif isinstance(raw, str):
-        genre_list = [g.strip() for g in raw.split(",") if g.strip()]
-    else:
-        return "N/A"
-    if not genre_list:
-        return "N/A"
-    out = []
-    for g in genre_list:
-        alias = GENRE_ALIASES.get(g.lower())
-        candidate = alias if alias else g
-        matched = None
-        for sg in STANDARD_GENRES:
-            if sg.lower() == candidate.lower():
-                matched = sg
-                break
-        if matched:
-            out.append(matched)
-    if out:
-        return ", ".join(dict.fromkeys(out))
-    return ", ".join(genre_list[:5])
-
-
-def extract_spoken_languages(details: dict) -> Optional[str]:
-    langs = details.get("languages")
-    if not langs:
-        return None
-    if isinstance(langs, list):
-        parts = [str(x).strip() for x in langs if str(x).strip()]
-    else:
-        parts = [s.strip() for s in str(langs).split(",") if s.strip()]
-    if not parts:
-        return None
-    return ", ".join(parts[:6])
-
-
-def rating_from_details(details: dict) -> str:
-    r = details.get("rating")
-    if r is None or r == "":
-        return "N/A"
-    try:
-        if isinstance(r, (int, float)) and float(r) == 0.0:
-            return "N/A"
-    except (TypeError, ValueError):
-        pass
-    return str(r)
-
 
 def clean_mentions_links(text: str) -> str:
     return CLEAN_PATTERN.sub("", text or "").strip()
@@ -347,12 +185,55 @@ def extract_media_info(filename: str, caption: str):
         if year:
             base_name += f" {year}"
 
-    base_name = strip_season_episode_tokens(base_name)
+    # -------------------------
+    # NEW: strip season/episode tokens from final base_name
+    # -------------------------
+    def _strip_season_episode_tokens(name: str) -> str:
+        """
+        Remove common season/episode markers from a title while preserving a trailing year.
+        Examples removed: S01, s01e02, 1x02, season 1, ep 02, episode 2, part 1
+        """
+        if not name:
+            return name
+
+        # Preserve trailing year (e.g. "Title (2020)" or "Title 2020")
+        year_match = re.search(r'\(?\b(19|20)\d{2}\b\)?\s*$', name)
+        year_part = ""
+        if year_match:
+            year_part = year_match.group(0)
+            name = name[:year_match.start()].strip()
+
+        # Common patterns to remove
+        patterns = [
+            r'\bS\d{1,2}E\d{1,2}\b',     # S01E02
+            r'\bS\d{1,2}\b',             # S01
+            r'\bE\d{1,2}\b',             # E02
+            r'\b\d{1,2}x\d{1,2}\b',      # 1x02
+            r'\bSeason\s*\d{1,2}\b',     # Season 1
+            r'\bEp(?:isode)?\.?\s*\d{1,3}\b',  # Ep02, Episode 2
+            r'\bEpisode\s*\d{1,3}\b',
+            r'\bPart\s*\d{1,2}\b'
+        ]
+
+        for p in patterns:
+            name = re.sub(p, ' ', name, flags=re.IGNORECASE)
+
+        # Remove leftover separators and extra whitespace
+        name = re.sub(r'[_\.\-]+', ' ', name)     # underscores/dots/hyphens
+        name = re.sub(r'\s+', ' ', name).strip()
+
+        # Reattach year in canonical form if we removed it earlier
+        if year_part:
+            y = re.search(r'(19|20)\d{2}', year_part)
+            if y:
+                name = f"{name} {y.group(0)}"
+
+        return name.strip()
+
+    base_name = _strip_season_episode_tokens(base_name)
+    # If stripping accidentally removed everything, fall back to a safer value
     if not base_name:
         base_name = normalize(remove_ignored_words(normalize(processed_raw))) or filename
-
-    fallback_title = base_name or normalize(remove_ignored_words(normalize(processed_raw))) or filename
-    base_name = finalize_title_for_lookup(base_name, fallback_title)
 
     return {
         "processed": normalize(processed_raw),
@@ -422,37 +303,35 @@ async def _process_with_lock(bot, filename, caption, media_info, base_name, proc
     }
 
     if not movie_doc:
-        search_query = base_name
         if TMDB_POSTER:
-            details = await get_movie_detailsx(search_query)
-            # Only switch to IMDB if TMDB completely failed
-            if details is None or not isinstance(details, dict) or details.get("error"):
-                error_tmdb = True
+            details = await get_movie_detailsx(base_name)
+            if details.get("error") or not details.get("poster_url") and not details.get("backdrop_url"):
+                error_tmdb=True
                 logger.info("TMDB error switching to IMDB")
-                details = await get_movie_details(search_query, file=filename) or {}
-            else:
-                error_tmdb = False  # TMDB succeeded
+                details = await get_movie_details(base_name) or {}
         else:
-            details = await get_movie_details(search_query, file=filename) or {}
+            details = await get_movie_details(base_name) or {}
 
-
-        genres = normalize_genres(details.get("genres"))
-        spoken = extract_spoken_languages(details)
+        raw_genres = details.get("genres", "N/A")
+        if isinstance(raw_genres, str):
+            genre_list = [g.strip() for g in raw_genres.split(",")]
+            genres = ", ".join(g for g in genre_list if g in STANDARD_GENRES) or "N/A"
+        else:
+            genres = ", ".join(g for g in raw_genres if g in STANDARD_GENRES) or "N/A"
         movie_doc = {
             "_id": base_name,
             "files": [file_data],
             "poster_url": details.get("backdrop_url") if LANDSCAPE_POSTER and TMDB_POSTER and details.get("backdrop_url") and not error_tmdb else details.get("poster_url"),
             "genres": genres,
-            "rating": rating_from_details(details),
-            "imdb_url": details.get("url", "") if not TMDB_POSTER or error_tmdb else details.get("tmdb_url"),
+            "rating": details.get("rating", "N/A"),
+            "imdb_url": details.get("url", "")if not TMDB_POSTER or error_tmdb else details.get("tmdb_url"),
             "year": media_info["year"] or details.get("year"),
             "tag": media_info["tag"],
             "ott_platform": media_info["ott_platform"],
             "message_id": None,
             "is_photo": False,
             "error_tmdb": error_tmdb,
-            "is_backdrop": details.get("backdrop_url"),
-            "spoken_languages": spoken,
+            "is_backdrop": details.get("backdrop_url")
         }
         try:
             await db.movie_updates.insert_one(movie_doc)
@@ -572,10 +451,8 @@ async def update_movie_message(bot, base_name):
                     disable_web_page_preview=not LINK_PREVIEW
                 )
             return
-        except MessageNotModified:
-            return
-        except MessageIdInvalid as e:
-            logger.warning("Message update skipped (invalid id): %s", e)
+        except (MessageIdInvalid, MessageNotModified) as e:
+            logger.warning(f"Message update skipped due to error: {e}")
             pass
         except Exception:
             try:
@@ -657,8 +534,6 @@ def generate_movie_message(movie_doc, base_name):
     genres = movie_doc.get("genres", "N/A")
     quality_str = ", ".join(sorted(all_qualities)) if all_qualities else "N/A"
     language_str = ", ".join(sorted(all_languages)) if all_languages else "N/A"
-    if language_str == "N/A" and movie_doc.get("spoken_languages"):
-        language_str = movie_doc["spoken_languages"]
     ott_str = ", ".join(sorted(all_ott_platforms)) if all_ott_platforms else "N/A"
 
     return script.MOVIE_UPDATE_NOTIFY_TXT.format(

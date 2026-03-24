@@ -155,7 +155,8 @@ async def get_movie_details(query, id=False, file=None):
         return None
 
 async def get_movie_detailsx(query, id=False, file=None):
-    base_url = "https://bharath-boy-api.vercel.app/api/movie-posters"
+    base_url = "https://api.themoviedb.org/3/search/movie"
+
     q = str(query).strip()
     try:
         async with aiohttp.ClientSession() as session:

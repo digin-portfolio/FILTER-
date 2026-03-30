@@ -19,8 +19,8 @@ def is_enabled(value, default):
 # ============================
 SESSION = environ.get('SESSION', 'TELEVISION_SHOWSBOT')   # Session name for the bot
 API_ID = int(environ.get('API_ID', '7506896')) # API ID from my.telegram.org
-API_HASH = environ.get('API_HASH', 'a7fe67d6616c957e0e488ce910aeaadb')  # API Hash from my.telegram.org
-BOT_TOKEN = environ.get('BOT_TOKEN', "8683002287:AAG2mQVPy9K1MErq-UMP7azxYe1mcTXVTa4")    # Bot token from @BotFather
+API_HASH = environ.get('API_HASH', '')  # API Hash from my.telegram.org
+BOT_TOKEN = environ.get('BOT_TOKEN', '')    # Bot token from @BotFather
 
 # ============================
 # Bot Settings Configuration
@@ -75,7 +75,7 @@ STAR_PREMIUM_PLANS = {
 # ============================
 # MongoDB Configuration
 # ============================
-DATABASE_URI = environ.get('DATABASE_URI', "mongodb+srv://diginprasadvidyame_db_user:kxTyOiJYRRtU4paQ@cluster0.cwnlvhp.mongodb.net/?appName=Cluster0")  # MongoDB URI for the database
+DATABASE_URI = environ.get('DATABASE_URI', '')  # MongoDB URI for the database
 DATABASE_NAME = environ.get('DATABASE_NAME', "Cluster0") # Database name (default: cluster)
 COLLECTION_NAME = environ.get('COLLECTION_NAME', 'dreamcinezone_files') # Collection name (default: dreamcinezone_files)
 
@@ -90,7 +90,7 @@ MOVIE_UPDATE_CHANNEL = int(environ.get('MOVIE_UPDATE_CHANNEL', '-1003887510795')
 DREAMXBOTZ_IMAGE_FETCH = bool(environ.get('DREAMXBOTZ_IMAGE_FETCH', True))  # On (True) / Off (False)
 LINK_PREVIEW = bool(environ.get('LINK_PREVIEW', False)) # Shows link preview in notification msg instead of image
 ABOVE_PREVIEW = bool(environ.get('ABOVE_PREVIEW', True)) # Shows link preview above the text in notification msg if True else below the msg
-TMDB_API_KEY = environ.get('TMDB_API_KEY', '9a9c53620db722c1693223034acd306d') # preffer to use your own tmdb API Key get it from https://www.themoviedb.org/settings/api
+TMDB_API_KEY = environ.get('TMDB_API_KEY', '') # preffer to use your own tmdb API Key get it from https://www.themoviedb.org/settings/api
 TMDB_POSTER = bool(environ.get('TMDB_POSTER', True)) # Shows TMDB poster in notification msg
 LANDSCAPE_POSTER = bool(environ.get('LANDSCAPE_POSTER', True)) # Shows landscape poster in notification msg
 
@@ -107,13 +107,13 @@ TUTORIAL_2 = environ.get("TUTORIAL_2", "https://t.me/iqbaleditzzz")   # Second t
 TUTORIAL_3 = environ.get("TUTORIAL_3", "https://t.me/iqbaleditzzz")   # Third tutorial link for verification
 
 # Verification (Must Fill All Veriables. Else You Got Error
-SHORTENER_API = environ.get("SHORTENER_API", "a7ac9b3012c67d7491414cf272d82593c75f6cbb") # Shortener API key
+SHORTENER_API = environ.get("SHORTENER_API", '')# Shortener API key
 SHORTENER_WEBSITE = environ.get("SHORTENER_WEBSITE", "omegalinks.in") # Shortener website
 
-SHORTENER_API2 = environ.get("SHORTENER_API2", "a7ac9b3012c67d7491414cf272d82593c75f6cbb")  # Shortener API key for second website
+SHORTENER_API2 = environ.get("SHORTENER_API2", '')  # Shortener API key for second website
 SHORTENER_WEBSITE2 = environ.get("SHORTENER_WEBSITE2", "omegalinks.in") # Shortener website for second website
 
-SHORTENER_API3 = environ.get("SHORTENER_API3", "a7ac9b3012c67d7491414cf272d82593c75f6cbb")  
+SHORTENER_API3 = environ.get("SHORTENER_API3", '')  
 SHORTENER_WEBSITE3 = environ.get("SHORTENER_WEBSITE3", "omegalinks.in") # Shortener website for third website
 
 TWO_VERIFY_GAP = int(environ.get('TWO_VERIFY_GAP', "1200")) # Time gap for two-step verification in seconds (default: 20 minutes)
